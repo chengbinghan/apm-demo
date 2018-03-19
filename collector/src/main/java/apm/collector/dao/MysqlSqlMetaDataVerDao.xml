@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="apm.collector.dao.MysqlSqlMetaDataVerDao">
+
+
+
+    <insert id="insert" parameterType="apm.collector.dao.MysqlSqlMetaDataVer">
+
+        insert into
+      sql_meta_data_ver2
+      (sqlMetaDataId,agentId,agentStartTime,sqlId,sqlInfo)
+       values(
+      #{sqlMetaDataId}, #{agentId}, #{agentStartTime},#{sqlId},#{sqlInfo})
+    </insert>
+
+
+
+
+</mapper>

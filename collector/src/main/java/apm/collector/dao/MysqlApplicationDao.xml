@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="apm.collector.dao.MysqlApplicationDao">
+
+    <select id="getMysqlApplicationByApplicationName" resultMap="MysqlApplicationMap">
+        select
+        app.applicationName as applicationName,
+        app.applicationType as applicationType,
+        app.code as code,
+        app.id as id
+
+         from  application app WHERE app.applicationName = #{applicationName}
+
+    </select>
+
+    <insert id="addAppliationToMysql" parameterType="apm.collector.dao.MysqlApplication">
+
+
+        insert into
+      application
+      (code,applicationType,applicationName)
+       values(
+      #{code}, #{applicationType}, #{applicationName})
+    </insert>
+
+    <resultMap id="MysqlApplicationMap" type="apm.collector.dao.MysqlApplication">
+
+        <result property="applicationName" column="applicationName"/>
+        <result property="id" column="id"/>
+        <result property="applicationType" column="applicationType"/>
+        <result property="code" column="code"/>
+    </resultMap>
+
+</mapper>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="apm.collector.dao.MysqlApiMetaDataBoDao">
+
+    <select id="getMysqlMetaDataBoByApiId" parameterType="java.lang.Integer" resultMap="MysqlApiMetaDataBoMap">
+
+        SELECT
+        amd.apiId as apiId,
+        amd.apiInfo as apiInfo
+         FROM api_meta_data amd WHERE amd.apiId = #{apiId};
+    </select>
+
+
+    <select id="getMysqlMetaDataBoByCondition" parameterType="hashMap" resultMap="MysqlApiMetaDataBoMap">
+
+               SELECT
+        amd.apiId as apiId,
+        amd.apiInfo as apiInfo
+         FROM api_meta_data amd WHERE amd.apiId = #{apiId} AND  amd.line = #{line} AND amd.apiInfo = #{apiInfo};
+
+
+    </select>
+
+    <insert id="addMysqlApiMetaDataBo" parameterType="apm.collector.dao.MysqlApiMetaDataBo">
+
+        insert into
+      api_meta_data
+      (agentId,agentStartTime,apiId,
+       apiInfo,line,type)
+       values(
+      #{agentId}, #{agentStartTime}, #{apiId},
+      #{apiInfo}, #{line},#{type})
+    </insert>
+
+    <resultMap id="MysqlApiMetaDataBoMap" type="apm.collector.dao.MysqlApiMetaDataBo">
+        <result property="apiId" column="apiId"/>
+        <result property="apiInfo" column="apiInfo"/>
+    </resultMap>
+</mapper>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="apm.collector.dao.MysqlAgentLifeCycleDao">
+
+    <insert id="insert" parameterType="apm.collector.dao.MysqlAgentLifeCycleBo">
+
+
+     insert into
+      agent_life_cycle
+      (agentId,startTimestamp,eventIdentifier,
+       eventTimestamp,version,stateCode,
+        stateDesc, stateName)
+       values(
+       #{agentId}, #{startTimestamp}, #{eventIdentifier},
+        #{eventTimestamp}, #{version},#{stateCode},
+        #{stateDesc},#{stateName})
+
+    </insert>
+
+    <select id="getAgentLifeCycleBoByAgentId" parameterType="java.lang.String" resultMap="MysqlAgentLifeCycleBoMap">
+        SELECT
+        alc.agentId as agentId,
+        alc.eventIdentifier as eventIdentifier,
+        alc.version as version
+         FROM agent_life_cycle alc WHERE alc.agentId = #{agentId};
+
+
+    </select>
+    <resultMap id="MysqlAgentLifeCycleBoMap" type="apm.collector.dao.MysqlAgentLifeCycleBo">
+        <result property="agentId" column="agentId"/>
+        <result property="eventIdentifier" column="eventIdentifier"/>
+        <result property="version" column="version"/>
+    </resultMap>
+</mapper>
