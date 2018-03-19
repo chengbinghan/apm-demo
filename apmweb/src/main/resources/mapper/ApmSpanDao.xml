@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="apm.web.dao.apmmysql.ApmSpanDao">
+
+
+    <select id="getEachSpanByElapsed" parameterType="hashMap" resultMap="SimpleSpanVOMap">
+        SELECT
+        sp1.elapsed as elapsed,
+        app1.applicationName                                             AS applicationName,
+        sp1.startTime as startTime,
+        sp1.remoteAddr as remoteAddr,
+       (SELECT avg(elapsed) FROM span sp2 WHERE sp2.rpc = #{rpc}  AND sp2.applicationId = 11 AND  sp2.startTime > (#{currentTime} - #{timeSection}) AND  sp2.startTime &lt; #{currentTime}) as avgElapsed
+
+        FROM span sp1, application app1
+        WHERE app1.id = #{appId}  AND sp1.applicationId = app1.id AND sp1.startTime > (#{currentTime} - #{timeSection}) AND  sp1.startTime &lt; #{currentTime} AND
+        sp1.startTime &lt; #{currentTime} AND  sp1.rpc = #{rpc} ORDER by sp1.startTime DESC ;
+
+
+
+    </select>
+
+    <select id="getGeneralTransactionTraceInfo" parameterType="java.lang.Long"
+            resultMap="GeneralTransactionTraceInfoMap">
+SELECT
+  s1.elapsed AS responseTime,
+  s1.rpc     AS rpc,
+   app1.applicationName as applicationName
+FROM
+  span s1,
+  application app1
+WHERE s1.applicationId = app1.id AND s1.spanId = #{spanId};
+    </select>
+
+    <resultMap id="GeneralTransactionTraceInfoMap" type="apm.web.beans.vo.TraceTitleInfoVO">
+        <result property="applicationName" column="applicationName"/>
+        <result property="responseTime" column="responseTime"/>
+        <result property="rpc" column="rpc"/>
+
+    </resultMap>
+
+
+    <select id="getAppsErrPer" parameterType="hashMap" resultType="java.lang.Double">
+        SELECT
+             (
+               (SELECT count(1) FROM span s1  WHERE s1.errCode != #{spanErrorCode} AND s1.applicationId =s.applicationId AND s1.startTime &gt; (#{currentTime} - #{timeSection}))
+                /
+               (SELECT count(1) FROM span s2  WHERE s2.applicationId = s.applicationId  AND s2.startTime &gt; (#{currentTime} - #{timeSection}))
+             ) as errPer
+
+        FROM span s WHERE  s.applicationId = #{appId} AND s.startTime &gt; (#{currentTime} - #{timeSection}) GROUP BY s.applicationId;
+    </select>
+
+    <select id="getTheFirstSpanEvent" parameterType="java.lang.Long" resultMap="spanEventMap">
+SELECT
+  api1.apiInfo,
+  se1.endElapsed ,
+  se1.spanEventId as spanEventId,
+  se1.nextSpaneventId,
+  se1.beforeSpanEventId,
+  se1.parentSpaneventId,
+  (
+    (SELECT se2.endElapsed FROM span_event se2 WHERE se2.spanEventId = se1.spanEventId)/
+    (SELECT sp3.elapsed from span sp3, span_event se3 WHERE se3.spanId = sp3.spanId AND  se3.spanEventId = se1.spanEventId)
+  )  as timePercent
+FROM
+  span_event se1, api_meta_data api1
+WHERE
+  se1.apiId  = api1.apiId AND
+  se1.spanEventId =
+  (SELECT se4.spanEventId
+   FROM span_event se4 WHERE se4.spanId=#{spanId} ORDER BY se4.endElapsed LIMIT 0,1);
+    </select>
+
+
+    <select id="getChildSpanEventList" parameterType="java.lang.Long" resultMap="spanEventMap">
+SELECT
+  api1.apiInfo as apiInfo,
+  se.endElapsed as endElapsed,
+  se.spanEventId as spanEventId,
+  se.nextSpaneventId,
+  se.beforeSpanEventId,
+  se.parentSpaneventId,
+  se.endElapsed/(sp1.elapsed) as timePercent
+FROM
+  span_event se, span sp1,api_meta_data api1
+WHERE
+  se.parentSpaneventId = #{spanEventId} AND api1.apiId = se.apiId AND se.spanId = sp1.spanId
+ORDER BY se.startElapsed;
+
+    </select>
+
+
+    <select id="getNextSpaneventById" parameterType="java.lang.Long" resultMap="spanEventMap">
+
+SELECT
+  api1.apiInfo,
+  se.endElapsed,
+  se.spanEventId as spanEventId,
+  se.nextSpaneventId,
+  se.beforeSpanEventId,
+  se.parentSpaneventId,
+(
+
+  (SELECT se2.endElapsed FROM span_event se2 WHERE se2.spanEventId = #{spanEventId})
+/ (SELECT sp2.elapsed from span sp2, span_event se3 WHERE se3.spanEventId = #{spanEventId} AND sp2.spanId = se3.spanId  ))  as timePercent
+FROM
+  api_meta_data api1,
+  span_event se WHERE se.spanEventId = #{spanEventId} AND api1.apiId = se.apiId;
+
+    </select>
+    <select id="getSpanEventListByTime" parameterType="hashMap" resultMap="slowTransactionTrace">
+      SELECT se.spanEventId, se.endElapsed,api.apiId, api.apiInfo
+FROM span_event se, span sp, api_meta_data api
+WHERE se.spanId=sp.spanId AND sp.spanId = #{apanId} AND api_meta_data.apiId = se.apiId ORDER BY se.startElapsed
+
+    </select>
+
+    <select id="getSpanEventBySpanIdOrderByStartTime" parameterType="java.lang.Long" resultMap="slowTransactionTrace">
+              SELECT se.spanEventId, se.endElapsed,api.apiId, api.apiInfo
+FROM span_event se, span sp, api_meta_data api
+WHERE se.spanId=sp.spanId AND sp.spanId = #{apanId} AND api.apiId = se.apiId ORDER BY se.startElapsed
+    </select>
+
+
+    <select id="getSlowestComponentList" parameterType="hashMap" resultMap="slowestComponentVO">
+
+SELECT
+  sum(se1.endElapsed)                                                                      AS totalTime,
+  count(1)                                                                                 AS invokeCount,
+  api.apiId,
+  api.apiInfo,
+  sum(se1.endElapsed) /
+  (SELECT sum(se2.endElapsed)
+   FROM span sp2, span_event se2
+   WHERE se2.spanId=sp2.spanId  AND sp2.spanId = #{spanId}) AS timePer
+FROM span_event se1, span sp, api_meta_data api
+WHERE
+      sp.spanId = #{spanId}
+      AND
+      sp.spanId = se1.spanId
+      AND
+      api.apiId = se1.apiId
+GROUP BY se1.apiId
+ORDER BY timePer DESC;
+
+    </select>
+    <select id="getSqlDetailBySpanId" parameterType="java.lang.Long" resultMap="sqlVO">
+
+
+SELECT
+  sql1.sqlMetaDataId,
+  sql1.sqlMetaDataId  AS sqlId,
+  sql1.sqlInfo,
+  count(1)            AS sqlCount,
+  sum(se1.endElapsed) AS totalSqlTime
+FROM
+  span_event se1,
+  sql_meta_data_ver2 sql1
+
+
+WHERE se1.spanId = #{spanId}
+      AND sql1.sqlMetaDataId = se1.sqlId
+GROUP BY se1.sqlId
+ORDER BY se1.startElapsed;
+  </select>
+
+
+    <select id="getEachSpanByTime" parameterType="hashMap" resultMap="SimpleSpanVOMap">
+        SELECT
+        sp1.elapsed as elapsed,
+        app1.applicationName                                             AS applicationName,
+        sp1.startTime as startTime,
+        sp1.remoteAddr as remoteAddr,
+       (SELECT avg(elapsed) FROM span sp2 WHERE sp2.rpc = #{rpc}  AND sp2.applicationId = 11 AND  sp2.startTime > (#{currentTime} - #{timeSection}) AND  sp2.startTime &lt; #{currentTime}) as avgElapsed
+
+        FROM span sp1, application app1
+        WHERE app1.id = #{appId}  AND sp1.applicationId = app1.id AND sp1.startTime > (#{currentTime} - #{timeSection}) AND  sp1.startTime &lt; #{currentTime} AND
+        sp1.startTime &lt; #{currentTime} AND  sp1.rpc = #{rpc} ORDER by sp1.elapsed DESC ;
+
+    </select>
+
+    <resultMap id="SimpleSpanVOMap" type="apm.web.beans.vo.SimpleSpanVO">
+        <result property="applicationName" column="applicationName"/>
+        <result property="avgElapsed" column="avgElapsed"/>
+        <result property="startTime" column="startTime"/>
+        <result property="elapsed" column="elapsed"/>
+        <result property="remoteAddr" column="remoteAddr"/>
+    </resultMap>
+
+
+    <select id="getSlowTransaction" parameterType="hashMap" resultMap="slowTransactionMap">
+
+
+SELECT
+
+  sp1.spanId,
+  sp1.elapsed as  elapsed,
+  sp1.startTime as startTime,
+  sp1.rpc as rpc,
+  sp1.applicationId as applicationId,
+  sp1.transactionId as transactionId
+FROM span sp1
+ WHERE sp1.startTime &gt; (#{currentTime}- #{timeSection}) AND  sp1.startTime &lt; #{currentTime} AND sp1.applicationId = #{appId} ORDER BY sp1.elapsed DESC ;
+    </select>
+
+    <select id="getElapsedByAppIdAndTransactionId" parameterType="java.lang.Long" resultType="java.lang.Integer">
+        select elapsed from span  s WHERE s.spanId = #{spanId};
+    </select>
+
+
+    <select id="getTheTransactionAnlysisVOByRpc" resultMap="transactionAnalysisMap">
+
+
+
+SELECT
+  count(1)            AS invokeCount,
+  avg(se1.endElapsed) AS avgTime,
+  se1.apiId           AS aa,
+  app1.applicationType as serviceName,
+  api1.apiInfo as apiInfo,
+  sum(se1.endElapsed)/(SELECT sum(se2.endElapsed)
+                       FROM span_event se2 ,span sp2 WHERE  se2.spanId = sp2.spanId AND sp2.rpc = sp1.rpc AND sp2.applicationId = sp1.applicationId) as timePer
+FROM span_event se1, span sp1, application app1, api_meta_data api1
+WHERE se1.spanId = sp1.spanId
+      AND sp1.rpc = #{rpc}
+      AND sp1.applicationId = app1.applicationName
+      AND app1.id = #{appId}
+      AND api1.apiId = se1.apiId
+GROUP BY se1.apiId;
+
+
+
+
+
+
+
+
+
+/*        SELECT
+  sp1.rpc,
+  app1.applicationName,
+  (sum(sp1.elapsed) / (SELECT sum(sp2.elapsed)
+                       FROM span sp2, transaction t2
+                       WHERE t2.rpc = #{rpc} AND t2.id = sp2.transactionId AND  sp1.startTime > (SELECT UNIX_TIMESTAMP() * 1000 - #{startTime} ))) AS timePer,
+  count(1) as invokeCount,
+  avg(sp1.elapsed) as avgTime
+FROM span sp1, application app1, transaction t1
+WHERE sp1.applicationId = app1.id AND t1.id = sp1.transactionId AND t1.rpc = #{rpc} AND sp1.startTime > (SELECT UNIX_TIMESTAMP() * 1000 - #{startTime} )
+
+GROUP BY sp1.rpc
+ORDER BY timePer;*/
+
+    </select>
+
+    <resultMap id="transactionAnalysisMap" type="apm.web.beans.vo.TheTransactionanalysisVO">
+
+        <result property="rpc" column="rpc"/>
+        <result property="applicationName" column="applicationName"/>
+        <result property="invokeCount" column="invokeCount"/>
+        <result property="avgTime" column="avgTime"/>
+        <result property="timePer" column="timePer"/>
+
+    </resultMap>
+
+
+    <resultMap id="slowTransactionMap" type="apm.web.beans.vo.SlowTransactionVO">
+
+        <result property="startTime" column="startTime"/>
+        <result property="rpc" column="rpc"/>
+        <result property="applicationId" column="applicationId"/>
+        <result property="elapsed" column="elapsed"/>
+        <result property="transactionId" column="transactionId"/>
+        <result property="spanId" column="spanId"/>
+
+
+    </resultMap>
+
+
+    <resultMap id="theSpanVo" type="apm.web.beans.vo.TheSpanVO">
+        <result property="averageTime" column="averageTime"/>
+        <result property="maxTime" column="maxTime"/>
+        <result property="minTime" column="minTime"/>
+        <result property="rpc" column="rpc"/>
+        <result property="invokeCount" column="invokeCount"/>
+        <result property="theSpanPer" column="theSpanPer"/>
+        <result property="applicationId" column="applicationId"/>
+        <result property="applicationName" column="applicationName"/>
+
+
+    </resultMap>
+
+
+    <resultMap id="sqlVO" type="apm.web.beans.vo.SqlVO">
+
+        <result property="spanId" column="spanId"/>
+        <result property="sql.sqlInfo" column="sqlInfo"/>
+        <result property="sql.sqlMetaDataId" column="sqlMetaDataId"/>
+        <result property="sql.sqlId" column="sqlId"/>
+        <result property="sqlCount" column="sqlCount"/>
+        <result property="totalSqlTime" column="totalSqlTime"/>
+    </resultMap>
+
+
+    <resultMap id="slowestComponentVO" type="apm.web.beans.vo.SlowestComponentVO">
+        <result property="totalTime" column="totalTime"/>
+        <result property="invokeCount" column="invokeCount"/>
+        <result property="timePer" column="timePer"/>
+        <result property="apiInfo" column="apiInfo"/>
+        <result property="apiId" column="apiId"/>
+    </resultMap>
+
+
+    <resultMap id="slowTransactionTrace" type="apm.web.beans.vo.SlowTransactionTraceVO">
+        <result property="spanEventId" column="spanEventId"/>
+        <result property="endElapsed" column="endElapsed"/>
+        <result property="methodId" column="apiId"/>
+        <result property="apiInfo" column="apiInfo"/>
+    </resultMap>
+
+
+    <resultMap id="spanEventMap" type="apm.web.beans.module.SpanEvent">
+        <result property="spanEventId" column="spanEventId"/>
+        <result property="transactionId" column="transactionId"/>
+        <result property="spanId" column="spanId"/>
+        <result property="startElapsed" column="startElapsed"/>
+        <result property="endElapsed" column="endElapsed"/>
+        <result property="sequence" column="sequence"/>
+        <result property="depth" column="depth"/>
+        <result property="serviceType" column="serviceType"/>
+        <result property="rpc" column="rpc"/>
+        <result property="endPoint" column="endPoint"/>
+        <result property="destinationId" column="destinationId"/>
+        <result property="apiId" column="apiId"/>
+        <result property="nextSpanId" column="nextSpanId"/>
+        <result property="exceptionId" column="exceptionId"/>
+        <result property="exceptionMessage" column="exceptionMessage"/>
+        <result property="nextAsyncId" column="nextAsyncId"/>
+        <result property="sqlId" column="sqlId"/>
+        <result property="parentSpanEvent.spanEventId" column="parentSpaneventId"/>
+        <result property="beforeSpanEvent.spanEventId" column="beforeSpaneventId"/>
+        <result property="afterSpanEvent.spanEventId" column="nextSpaneventId"/>
+        <result property="timePercent" column="timePercent"/>
+        <result property="apiInfo" column="apiInfo"/>
+    </resultMap>
+
+
+</mapper>

@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="apm.web.dao.apmmysql.OutServiceDao">
+
+    <select id="getOutServiceList" parameterType="hashMap" resultMap="OutServiceVOMap">
+SELECT
+  se1.serviceType AS serviceType,
+  app1.applicationName AS applicationName,
+  sum(se1.endElapsed) /
+  (
+    SELECT sum(se2.endElapsed)
+    FROM
+      application app2,
+      span_event se2,
+      span sp2
+    WHERE
+      app2.id = sp2.applicationId
+      AND
+      sp2.spanId = se2.spanId
+      AND
+      app2.id = #{appId}
+      AND
+      sp2.startTime > (SELECT UNIX_TIMESTAMP() * 1000 - #{startTime})
+  ) AS per
+FROM
+  application app1,
+  span_event se1,
+  span sp1
+WHERE
+  app1.id = sp1.applicationId
+  AND
+  sp1.spanId = se1.spanId
+  AND
+  app1.id = #{appId}
+  AND
+  sp1.startTime > (SELECT UNIX_TIMESTAMP() * 1000 - #{startTime})
+GROUP BY se1.serviceType order by per;
+
+    </select>
+
+    <select id="getTheOutServiceByTime" resultMap="outServiceResponseVOMap" parameterType="hashMap">
+
+
+        SELECT
+  avg(se1.endElapsed) as avgTime,
+  max(se1.endElapsed) as maxTime,
+  min(se1.endElapsed) as minTime,
+  count(1) as invokeCount
+FROM span_event se1, span sp1
+WHERE  sp1.spanId = se1.spanId AND sp1.applicationId = #{appId} AND
+      se1.startElapsed &gt; #{startTime} AND se1.startElapsed &lt; #{endTime}
+      AND se1.serviceType = #{serviceCode};
+    </select>
+
+
+
+    <select id="getTopNExpensiveOutService" parameterType="hashMap" resultMap="topNExpensiveOutServiceVO">
+
+      SELECT
+  COUNT(1) as invokeCount,
+  max(se1.endElapsed) as maxTime,
+  min(se1.endElapsed) as minTime,
+  se1.serviceType AS serviceType,
+  avg(se1.endElapsed) as avgTime,
+  app1.applicationName AS applicationName,
+  sum(se1.endElapsed) /
+  (
+    SELECT sum(se2.endElapsed)
+    FROM
+      application app2,
+      span_event se2,
+      span sp2
+    WHERE
+      app2.id = sp2.applicationId
+      AND
+      sp2.spanId = se2.spanId
+      AND
+      app2.id = #{appId}
+      AND
+      sp2.startTime > (SELECT UNIX_TIMESTAMP() * 1000 - #{startTime})
+  ) AS per
+FROM
+  application app1,
+  span_event se1,
+  span sp1
+WHERE
+  app1.id = sp1.applicationId
+  AND
+  sp1.spanId = se1.spanId
+  AND
+  app1.id = #{appId}
+  AND
+  sp1.startTime > (SELECT UNIX_TIMESTAMP() * 1000 - #{startTime})
+  AND
+  se1.serviceType != (SELECT app3.code from application app3 WHERE app3.id = #{appId})
+
+GROUP BY se1.serviceType order by per limit 0,5;
+    </select>
+
+
+
+
+
+
+    <resultMap id="topNExpensiveOutServiceVO" type="apm.web.beans.vo.ExpensiveOutserviceVO">
+        <result property="invokeCount" column="invokeCount"/>
+        <result property="avgTime" column="avgTime"/>
+        <result property="maxTime" column="maxTime"/>
+        <result property="minTime" column="minTime"/>
+        <result property="applicationName" column="applicationName"/>
+        <result property="serviceCode" column="serviceType"/>
+        <result property="timePer" column="per"/>
+
+
+
+    </resultMap>
+
+
+
+
+
+
+
+
+    <resultMap id="outServiceResponseVOMap" type="apm.web.beans.vo.OutServiceByTimeVO">
+
+    <result property="avgTime" column="avgTime"/>
+    <result property="maxTime" column="maxTime"/>
+    <result property="minTime" column="minTime"/>
+    <result property="invokeCount" column="invokeCount"/>
+    </resultMap>
+
+    <resultMap id="OutServiceVOMap" type="apm.web.beans.vo.OutServiceVO">
+        <result property="applicationName" column="applicationName"/>
+        <result property="serviceType" column="serviceType"/>
+        <result property="per" column="per"/>
+    </resultMap>
+
+</mapper>

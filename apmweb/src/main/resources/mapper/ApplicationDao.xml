@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="apm.web.dao.apmmysql.ApplicationDao">
+
+    <select id="getApplicationList" resultType="apm.web.beans.module.ApmApplication">
+        SELECT * FROM application;
+    </select>
+
+
+    <select id="getAppsResponseTimeByAppId" parameterType="hashMap" resultType="java.lang.Integer">
+
+           SELECT
+            (sum(elapsed)/(SELECT count(1) FROM transaction t2 WHERE (#{currentTime} - #{timeSection})  &lt; t2.startTime AND t2.endtime &lt; #{currentTime} AND t2.application_id = t.application_id)) as perTime
+        FROM transaction t
+        WHERE
+       (#{currentTime} - #{timeSection})  &lt; t.startTime AND t.endtime &lt; #{currentTime} AND t.application_id = #{appId}
+    </select>
+
+
+    <select id="getApdexVOByTimeAndAppId" parameterType="hashMap" resultType="java.lang.Double">
+SELECT
+  (
+    (((SELECT count(1) FROM transaction t2  WHERE t2.application_id = t.application_id AND t2.elapsed &lt; (0.3 * 1000) AND  t2.startTime &lt; #{endTime} AND t2.startTime > #{startTime}))
++
+(SELECT count(1) FROM transaction t3 WHERE t3.application_id = t.application_id AND  t3.startTime &lt; #{endTime} AND t3.startTime > #{startTime} AND  t3.elapsed  &lt;  (0.7 * 1000) AND t3.elapsed > (0.3*1000) ) * 0.5 )/
+(SELECT count(1) FROM transaction t4 WHERE  t4.application_id = t.application_id AND  t4.startTime &lt; #{endTime} AND t4.startTime > #{startTime})
+) as apdex
+
+FROM transaction t WHERE t.application_id = #{appId} AND  t.startTime &lt; #{endTime} AND t.startTime > #{startTime} GROUP BY t.application_id; ;
+
+
+
+
+ </select>
+
+    <select id="selectApplicationByName" parameterType="java.lang.String"
+            resultType="apm.web.beans.module.ApmApplication">
+
+    select app1.applicationType, app1.code, app1.id, app1.applicationName FROM application app1 WHERE  app1.applicationName = #{applicationName};
+
+</select>
+
+
+    <select id="selectApplicationByCode" parameterType="java.lang.Integer"
+            resultType="apm.web.beans.module.ApmApplication">
+ select app1.applicationType, app1.code, app1.id, app1.applicationName FROM application app1 WHERE  app1.code = #{serviceCode};
+
+    </select>
+
+
+</mapper>

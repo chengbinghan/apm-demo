@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="apm.web.dao.apmmysql.ApmTransactionDao">
+
+    <select id="getTransactionPer" parameterType="hashMap" resultMap="transactionVo">
+       SELECT
+  bb.application_id,
+  bb.rpc,
+  convert(bb.transaction_percent, decimal(10,2)) as transaction_per
+
+FROM
+
+  (SELECT
+     sum(elapsed) / (SELECT sum(elapsed)
+
+                     FROM transaction t2
+
+                     WHERE
+                       t2.application_id = #{appId} AND t2.startTime > (#{currentTime} - #{timeSection} )) as transaction_percent,
+     t.rpc,
+     t.application_id
+   FROM transaction t
+   WHERE t.application_id = #{appId} AND t.startTime > (#{currentTime} - #{timeSection} )
+   GROUP BY rpc) as bb
+ORDER BY bb.transaction_percent DESC;
+    </select>
+
+
+    <select id="getAppsRpm" parameterType="hashMap" resultType="java.lang.Double">
+
+SELECT
+
+  (SELECT count(1)
+   FROM
+     transaction t2
+   WHERE  t2.application_id = t.application_id AND
+         t2.startTime  &gt; (#{currentTime} - #{timeSection})
+   GROUP BY t2.application_id ) / (#{timeSection}/1000) as rpm
+FROM transaction t where t.application_id = #{appId} GROUP by t.application_id;
+    </select>
+
+
+    <select id="getApdexByCondition" parameterType="hashMap" resultType="java.lang.Double">
+
+     SELECT
+        (
+        (((SELECT count(1) FROM transaction t2  WHERE t2.endtime &lt; #{currentTime} AND t2.startTime &gt;  (#{currentTime} - #{timeSection}) AND t2.application_id = t.application_id AND t2.elapsed &lt; (#{satisfactionTime} * 1000)))
+        +
+        (SELECT count(1) FROM transaction t3 WHERE t3.endtime &lt; #{currentTime} AND t3.startTime &gt;  (#{currentTime} - #{timeSection}) AND t3.application_id = t.application_id AND t.startTime > (#{currentTime} - #{timeSection}) AND  t3.elapsed  &lt;  (#{qualifiedTime} * 1000) AND t3.elapsed &gt; (#{satisfactionTime}*1000) ) * 0.5 )/
+        (SELECT count(1) FROM transaction t4 WHERE t4.endtime &lt; #{currentTime} AND t4.startTime &gt;  (#{currentTime} - #{timeSection}) AND t4.application_id = t.application_id AND t.startTime > (#{currentTime} - #{timeSection}))
+        ) as apdex
+
+        FROM transaction t WHERE   t.endtime &lt; #{currentTime} AND t.startTime &gt;  (#{currentTime} - #{timeSection}) AND t.application_id = #{appId} AND t.startTime > (#{currentTime} - #{timeSection}) GROUP BY t.application_id;
+
+
+</select>
+
+
+    <select id="getAppsResponseAddexByAppId" resultType="java.lang.Double" parameterType="hashMap">
+
+        SELECT
+        (
+        (((SELECT count(1) FROM transaction t2  WHERE t2.startTime > (#{currentTime} -#{timeSection}) AND t2.endtime &lt; #{currentTime}  AND t2.application_id = t.application_id AND t2.elapsed &lt; (#{satisfactionTime} * 1000)))
+        +
+        (SELECT count(1) FROM transaction t3 WHERE t3.application_id = t.application_id AND t3.startTime > (#{currentTime} -#{timeSection})  AND t3.endtime &lt; #{currentTime} AND  t3.elapsed  &lt;  (#{qualifiedTime} * 1000) AND t3.elapsed &gt; (#{satisfactionTime}*1000) ) * 0.5 )/
+        (SELECT count(1) FROM transaction t4 WHERE  t4.application_id = t.application_id AND t4.startTime > (#{currentTime} -#{timeSection}) AND t4.endtime &lt; #{currentTime} )
+        ) as apdex
+
+        FROM transaction t WHERE t.application_id = #{appId} AND t.startTime > (#{currentTime} -#{timeSection}) AND t.endtime &lt; #{currentTime} GROUP BY t.application_id;
+
+
+    </select>
+
+
+    <select id="getApdexByAppIdAndRpc" parameterType="hashMap" resultType="Double">
+SELECT
+  (
+    (((SELECT count(1) FROM transaction t2  WHERE t2.application_id = t.application_id AND t2.rpc = t.rpc AND t2.elapsed &lt; (#{satisfactionTime} * 1000)))
++
+(SELECT count(1) FROM transaction t3 WHERE t3.application_id = t.application_id AND t3.rpc = t.rpc AND t.startTime > (SELECT UNIX_TIMESTAMP() * 1000 - #{startTime}) AND  t3.elapsed  &lt;  (#{qualifiedTime} * 1000) AND t3.elapsed &gt; (#{satisfactionTime}*1000) ) * 0.5 )/
+(SELECT count(1) FROM transaction t4 WHERE  t4.application_id = t.application_id AND t4.rpc = t.rpc AND t.startTime > (SELECT UNIX_TIMESTAMP() * 1000 - #{startTime}))
+) as apdex
+
+FROM transaction t WHERE t.application_id = #{appId} AND t.rpc = #{rpc} AND t.startTime > (SELECT UNIX_TIMESTAMP() * 1000 - #{startTime}) GROUP BY t.application_id;
+
+
+
+    </select>
+
+
+    <select id="getTopNTransaction" parameterType="hashMap" resultMap="topNTransactionVO">
+SELECT
+  bb.application_id,
+  bb.rpc,
+  convert(bb.transaction_percent, decimal(10,2)) as transaction_per,
+  max_transactionTime,
+  min_transactionTime,
+  avg_transactionTime,
+  transaction_count
+FROM
+
+  (SELECT
+     sum(t.elapsed) / (SELECT sum(elapsed)
+
+                     FROM transaction t2
+
+                     WHERE
+                       t2.application_id = #{appId} AND t2.startTime &gt; (#{currentTime} - #{timeSection}) AND t2.startTime &lt; #{currentTime}) as transaction_percent,
+     t.rpc,
+     t.application_id,
+     max(t.elapsed) as max_transactionTime,
+     min(t.elapsed) as min_transactionTime,
+    avg(t.elapsed) as avg_transactionTime,
+    count(t.elapsed) as transaction_count
+   FROM transaction t
+   WHERE t.application_id = #{appId} AND t.startTime &gt; (#{currentTime} - #{timeSection}) AND t.startTime &lt; #{currentTime}
+   GROUP BY rpc) as bb
+
+ORDER BY bb.transaction_percent DESC LIMIT 0, 30;
+    </select>
+
+    <select id="getErrPerByAppIdAndRpc" parameterType="hashMap" resultType="Double">
+
+SELECT
+  (
+    (SELECT count(1) FROM span s1  WHERE s1.errCode = 0 AND s1.rpc=s.rpc  AND s1.applicationId =s.applicationId AND s1.startTime &gt; (SELECT UNIX_TIMESTAMP() * 1000 - #{startTime}) GROUP BY s1.applicationId )
+/
+(SELECT count(1) FROM span s2  WHERE s2.applicationId = s.applicationId  AND s2.rpc = s.rpc AND s2.startTime &gt; (SELECT UNIX_TIMESTAMP() * 1000 - #{startTime}) GROUP BY s2.applicationId)
+) as errPer
+
+FROM span s WHERE  s.applicationId = #{appId} AND s.rpc=#{rpc} AND s.startTime &gt; (SELECT UNIX_TIMESTAMP() * 1000 - #{startTime})  GROUP BY s.applicationId ;
+
+    </select>
+
+    <select id="getAllTransactionUrlByAppId" parameterType="java.lang.String" resultType="java.lang.String">
+
+
+        select
+        t1.rpc as rpc
+
+        from transaction t1 WHERE  t1.application_id = #{appId} GROUP by t1.rpc;
+
+    </select>
+    <resultMap id="TransactionMap" type="apm.web.beans.module.Transaction">
+
+        <result property="id" column="id"/>
+        <result property="rpc" column="rpc"/>
+        <result property="startTime" column="startTime"/>
+        <result property="elapsed" column="elapsed"/>
+        <result property="endTime" column="endTime"/>
+        <result property="appllicationId" column="application_id"/>
+
+    </resultMap>
+
+
+    <resultMap type="apm.web.beans.vo.TransactionVO" id="topNTransactionVO">
+        <result property="transaction.appllicationId" column="application_id"/>
+        <result property="transaction.rpc" column="rpc"/>
+        <result property="transactionPer" column="transaction_per"/>
+        <result property="maxTransactionTime" column="max_transactionTime"/>
+        <result property="minTransactionTime" column="min_transactionTime"/>
+        <result property="avgTransactionTime" column="avg_transactionTime"/>
+        <result property="transactionCount" column="transaction_count"/>
+    </resultMap>
+
+
+    <resultMap type="apm.web.beans.vo.TransactionVO" id="transactionVo">
+        <result property="transaction.appllicationId" column="application_id"/>
+        <result property="transaction.rpc" column="rpc"/>
+        <result property="transactionPer" column="transaction_per"/>
+        <result property="transaction.id" column="id"/>
+    </resultMap>
+
+
+</mapper>

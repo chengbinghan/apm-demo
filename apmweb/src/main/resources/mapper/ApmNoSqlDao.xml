@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="apm.web.dao.apmmysql.ApmNoSqlDao">
+
+    <select id="getNoSqlGeneralView" parameterType="hashMap" resultMap="NoSqlMap">
+
+
+    </select>
+
+    <select id="getNosqlSetGeneralInfo" resultMap="NoSqlMap">
+        SELECT count(1) as setCount,
+        sum(se1.endElapsed) as totalSetTime
+
+        FROM span_event se1
+        WHERE  se1.startElapsed &gt; (#{currentTime}-#{timeSection}) AND (se1.startElapsed + se1.endElapsed) &lt; #{currentTime} AND
+        se1.apiId in
+        <foreach item="id" index="index"  collection="apiIds" open="( " separator="," close=" )">
+            #{id}
+        </foreach>
+
+    </select>
+
+    <resultMap id="NoSqlMap" type="apm.web.beans.vo.NosqlVO">
+        <result property="noSqlType" column="noSqlType"/>
+        <result property="totalGetTime" column="totalGetTime"/>
+        <result property="totalSetTime" column="totalSetTime"/>
+        <result property="getCount" column="getCount"/>
+        <result property="setCount" column="setCount"/>
+    </resultMap>
+</mapper>
