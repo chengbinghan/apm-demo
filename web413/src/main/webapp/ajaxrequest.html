@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+</head>
+
+<script type="text/javascript" src="jquery-1.4.4.min.js"></script>
+<body>
+
+<script>
+
+    function f(){
+        $.ajax({
+
+            headers: {
+                header:'Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept',
+                "Content-Length":-1
+            },
+            url: "/web/hello",
+            data: "",
+            success: function(data) {
+            },
+            error: function(err) {
+            },
+            complete: function(XMLHttpRequest, status) { //请求完成后最终执行参数　
+            }
+        })
+    }
+
+
+</script>
+cccccccccccccccc
+<button onclick="f()" name="bbbbb">button</button>
+</body>
+</html>
