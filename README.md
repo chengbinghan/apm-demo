@@ -3,7 +3,7 @@
 
 Some demo for Application Performance Managent
 
-This repository  has many demo about apm(Application Performance Management)
+
 
 agentMain: A project for update class in jvm without restart,use java agent Instrumentation and javaassist
 
