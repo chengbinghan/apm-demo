@@ -11,7 +11,6 @@ public class HcbSimplePrincipal {
 
     public HcbSimplePrincipal(String name) {
         System.out.println("this is old HcbSimplePrincipal ..........");
-
         this.name = name;
     }
 

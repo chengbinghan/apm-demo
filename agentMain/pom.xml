@@ -27,6 +27,13 @@
             <version>3.15.0-GA</version>
             <scope>compile</scope>
         </dependency>
+
+        <dependency>
+            <groupId>jdk.tools</groupId>
+            <artifactId>jdk.tools</artifactId>
+            <scope>system</scope>
+            <systemPath>${JAVA_HOME}/lib/tools.jar</systemPath>
+        </dependency>
     </dependencies>
 
 </project>
