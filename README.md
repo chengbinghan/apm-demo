@@ -13,6 +13,8 @@ javaassist: Some simple demo about how to use javaassist to modify a class , inn
 
 web413: A simple web demo for test.
 
+apm-agent: this demo just like pinpoint agent, more complex see the README in the demo
+
 
 #author email hhccbb123@163.com
 
