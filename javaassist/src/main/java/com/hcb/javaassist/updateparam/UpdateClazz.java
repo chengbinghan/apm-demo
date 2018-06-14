@@ -18,9 +18,6 @@ public class UpdateClazz {
         ctc.setBody("{name=\"modify name\";this.name = name;}");
 
 
-
-
-
         SimplePrincipal sp=(SimplePrincipal)cc.toClass().getConstructor(String.class).newInstance("name");
 
         System.out.println(sp.getName());

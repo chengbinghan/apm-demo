@@ -24,10 +24,8 @@ public class AgentMain {
         Class[] classes = inst.getAllLoadedClasses();
         for (Class clazz : classes) {
 
-
             if (clazz.getName().contains("HcbSimplePrincipal")) {
                 System.out.println("add transformer to TBRemotingRPCProtocolComponent.class");
-
 
                 if (flag) {
                     final MyTransformer myTransformer = new MyTransformer();
