@@ -1,0 +1,19 @@
+
+
+这个工程是pinpoint（https://github.com/naver/pinpoint）的agent的简版
+借鉴了：https://github.com/brutusin/instrumentation的工程
+
+
+如何测试：
+
+1、org.brutusin.instrumentation.InstrumentatorTest方法中直接测试。
+
+
+2、tomcat-premain方式测试
+2.0 maven 打包， 将打包后的instrumentation-1.0.1.jar， 及该包依赖的jar放到同一个文件夹。
+2.1 部署web413
+2.2 添加启动参数
+-javaagent:C:\\kingdee\\study\\bytecode\\bytecode-workspace\\apm-agent\\instrumentation-master\\target\\instrumentation-1.0.1.jar=com.hcb.instrumentation.logging.LoggingInterceptor;hcb-apmagent
+
+
+
