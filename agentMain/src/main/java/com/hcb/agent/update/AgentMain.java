@@ -2,11 +2,11 @@ package com.hcb.agent.update;
 
 import javassist.*;
 
-import java.lang.instrument.ClassDefinition;
+
 import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Random;
+
 
 /**
  * @author ChengBing Han
