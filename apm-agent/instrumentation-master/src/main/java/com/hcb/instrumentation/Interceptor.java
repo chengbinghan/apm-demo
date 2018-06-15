@@ -23,7 +23,6 @@ import org.objectweb.asm.tree.MethodNode;
  * Implementation class names are passed to the framework via the options
  * argument in the agent.
  *
- * @author Ignacio del Valle Alles idelvall@brutusin.org
  */
 public abstract class Interceptor extends Callback {
 
