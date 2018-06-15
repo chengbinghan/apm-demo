@@ -15,6 +15,9 @@
  */
 package com.hcb.instrumentation;
 
+import com.hcb.instrumentation.asm.AsmInstrumentator;
+import com.hcb.instrumentation.transform.ParamTransForm;
+
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
@@ -47,29 +50,10 @@ public class Agent {
                 interceptor.init(null);
             }
             Callback.registerCallback(callbackId, interceptor);
-            instrumentation.addTransformer(new ClassFileTransformer() {
-                public byte[] transform(final ClassLoader loader,
-                                        final String className, final Class<?> classBeingRedefined,
-                                        final ProtectionDomain protectionDomain,
-                                        final byte[] classfileBuffer)
-                        throws IllegalClassFormatException {
 
-                    if (!isAncestor(Agent.class.getClassLoader(), loader)) {
-                        return classfileBuffer;
-                    }
+            final ParamTransForm paramTransForm = new ParamTransForm(interceptor, callbackId);
+            instrumentation.addTransformer(paramTransForm);
 
-                    return AccessController.doPrivileged(new PrivilegedAction<byte[]>() {
-                        public byte[] run() {
-
-                            Instrumentator instrumentator = new Instrumentator(className, classfileBuffer, interceptor, callbackId);
-
-                            final byte[] bytes = instrumentator.modifyClass();
-
-                            return bytes;
-                        }
-                    });
-                }
-            });
         } catch (Throwable th) {
             th.printStackTrace(System.err);
         }

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.brutusin.instrumentation;
+package com.hcb.instrumentation;
 
 
 import java.io.InputStream;
@@ -21,10 +21,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import com.hcb.commons.Bean;
-import com.hcb.instrumentation.Callback;
-import com.hcb.instrumentation.Instrumentator;
-import com.hcb.instrumentation.Interceptor;
-import com.hcb.instrumentation.VoidInterceptor;
+import com.hcb.instrumentation.asm.AsmInstrumentator;
 import com.hcb.instrumentation.logging.LoggingInterceptor;
 import org.apache.commons.io.IOUtils;
 
@@ -53,7 +50,7 @@ public class InstrumentatorTest {
         String resourceName = className.replace('.', '/') + ".class";
         InputStream is = clazz.getClassLoader().getResourceAsStream(resourceName);
         byte[] bytes = IOUtils.toByteArray(is);
-        Instrumentator instrumentator = new Instrumentator(className, bytes, interceptor, callbackId);
+        AsmInstrumentator instrumentator = new AsmInstrumentator(className, bytes, interceptor, callbackId);
         byte[] newbytes = instrumentator.modifyClass();
         return cl.loadClass(className, newbytes);
     }

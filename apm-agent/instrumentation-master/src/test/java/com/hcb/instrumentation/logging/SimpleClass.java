@@ -13,15 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.brutusin.instrumentation.logging;
+package com.hcb.instrumentation.logging;
 
-import org.junit.Test;
+public class SimpleClass {
 
-public class LoggingInterceptorTest {
+    public static String sayHello(String name) {
+        return "Hello " + name + ", you fool, I love youuu! " + joinTheJoyRide();
+    }
 
-    @Test
-    public void test() {
-        SimpleClass.sayHello("world");
-        SimpleClass.sayGoodBye();
+    public static String joinTheJoyRide() {
+        return "C'mon join the joyrideee!";
+    }
+
+    public static String sayGoodBye() {
+        return "Goodbye to you, goodbye to broken hearts";
     }
 }
+

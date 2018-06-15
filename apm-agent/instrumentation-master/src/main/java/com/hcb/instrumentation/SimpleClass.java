@@ -15,10 +15,6 @@
  */
 package com.hcb.instrumentation;
 
-import com.hcb.instrumentation.asm.Helper;
-import sun.misc.IOUtils;
-
-import java.io.InputStream;
 import java.util.Date;
 
 
@@ -26,13 +22,20 @@ public class SimpleClass {
 
     public static final String GREETING = "Hello world";
 
-    public void callback() {
-        Callback callback = Callback.getInstance("1");
-        callback.doOnStart(null, null, null);
+
+    public static String sayHello(String[] name) {
+
+        return "Helloaaaaaaaaaaaaaaaarrrrrrrrrrrrrrrrrrrrrrrrrr " + name + "!";
     }
+
     public static String sayHello(String name) {
 
         return "Hello " + name + "!";
+    }
+
+    public static void main(String[] args) {
+
+        System.out.println("main........................invoke......................");
     }
 
     public static String sayHelloDate(String name) {
@@ -46,6 +49,7 @@ public class SimpleClass {
     public static void throwHello() {
         throw new RuntimeException(GREETING);
     }
+
 
 
 }

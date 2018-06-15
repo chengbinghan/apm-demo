@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hcb.instrumentation;
+package com.hcb.instrumentation.asm;
 
 import java.util.Iterator;
 import java.util.List;
 
+import com.hcb.instrumentation.Interceptor;
 import com.hcb.instrumentation.asm.Helper;
 import com.hcb.instrumentation.asm.TreeInstructions;
 import org.objectweb.asm.ClassReader;
@@ -37,7 +38,7 @@ import org.objectweb.asm.tree.VarInsnNode;
 
 import org.objectweb.asm.tree.LabelNode;
 
-public class Instrumentator {
+public class AsmInstrumentator {
 
     protected final String callbackId;
     protected final Interceptor interceptor;
@@ -60,7 +61,7 @@ public class Instrumentator {
 
     protected LabelNode startNode;
 
-    public Instrumentator(String className, byte[] classfileBuffer, Interceptor interceptor, String callbackId) {
+    public AsmInstrumentator(String className, byte[] classfileBuffer, Interceptor interceptor, String callbackId) {
         this.className = className;
         this.originalClassFileBuffer = classfileBuffer;
         this.callbackId = callbackId;
