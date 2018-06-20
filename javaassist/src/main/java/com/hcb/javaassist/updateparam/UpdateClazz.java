@@ -16,8 +16,6 @@ public class UpdateClazz {
         CtClass cc = cp.get("com.hcb.javaassist.updateparam.SimplePrincipal");
         CtConstructor ctc = cc.getConstructors()[0];
         ctc.setBody("{name=\"modify name\";this.name = name;}");
-
-
         SimplePrincipal sp=(SimplePrincipal)cc.toClass().getConstructor(String.class).newInstance("name");
 
         System.out.println(sp.getName());
